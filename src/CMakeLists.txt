@@ -24,11 +24,11 @@ target_include_directories(gen-cones PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../incl
 target_include_directories(gen-cones PUBLIC ${OPENMESH_INCLUDE_DIR} )
 target_include_directories(gen-cones PUBLIC ${OpenMP_CXX_INCLUDE_DIR})
 target_include_directories(gen-cones PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../packages")
-# # borrow args.hxx directly from polyscope
-# target_include_directories(gen-cones PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../deps/polyscope/deps/args/")
+# borrow args.hxx directly from polyscope
+target_include_directories(gen-cones PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../packages/polyscope/deps/args/")
 target_link_libraries(cones ${OPENMESH_LIBRARIES})
 target_link_libraries(cones ${OpenMP_CXX_LIBRARIES})
-target_link_libraries(cones gen-cones)
+target_link_libraries(cones gen-cones geometry-central polyscope)
 
 
 option(PACKAGE_TESTS "Build the tests" OFF)

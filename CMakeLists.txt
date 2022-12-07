@@ -82,8 +82,8 @@ endif()
 find_package(OpenMP REQUIRED)
 
 # add_subdirectory(deps/fcpw)
-# add_subdirectory(deps/geometry-central)
-# add_subdirectory(deps/polyscope)
+add_subdirectory(packages/geometry-central)
+add_subdirectory(packages/polyscope)
 
 # include("findMKL.cmake")
 # if(MKL_FOUND)

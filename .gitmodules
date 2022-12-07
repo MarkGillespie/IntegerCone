@@ -1,0 +1,8 @@
+[submodule "packages/polyscope"]
+	path = packages/polyscope
+	url = git@github.com:MarkGillespie/polyscope.git
+	branch = master
+[submodule "packages/geometry-central"]
+	path = packages/geometry-central
+	url = git@github.com:MarkGillespie/geometry-central.git
+	branch = master

@@ -247,7 +247,7 @@ void geneCone(VectorX &conesK, VectorX &phi, VectorX &MA, int coneMax,
 
   // ----- different initial ------
 
-  int para_num = 10;
+  int para_num = 1;
   double gamma = 1e-2;
   double lm_eps = 0.12;
   volatile bool is_success = false;
