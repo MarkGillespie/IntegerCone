@@ -40,7 +40,7 @@ struct OptCandidates {
 
   OptCandidates(const ColMajorSparseMatrix A_, const VectorX M_,
                 const VectorX b_, int cone_, double sigma_, int lp_ = 2)
-      : A(A_), b(b_), M(M_), sigma(sigma_), lp(lp_), coneMax(cone_) {
+      : A(A_), M(M_), coneMax(cone_), b(b_), sigma(sigma_), lp(lp_) {
     shift = (A * VectorX::Ones(A.cols())).norm() < 1e-10;
     if (!shift) {
       S.resize(A.rows(), A.cols());
