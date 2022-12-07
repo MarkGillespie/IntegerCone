@@ -300,7 +300,7 @@ void geneCone(VectorX &conesK, VectorX &phi, VectorX &MA, int coneMax,
   cmin = DBL_MAX;
 
   int opt_i;
-  for (size_t i = 0; i < para_num; i++) {
+  for (int i = 0; i < para_num; i++) {
     if (candidate[i]->qualified() && candidate[i]->E_min < cmin) {
       opt_i = i;
       cmin = candidate[i]->E_min;
