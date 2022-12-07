@@ -2,6 +2,7 @@
 #define DRSPLITTING_HPP
 
 #include "AndersonAcceleration.h"
+#include <cfloat>
 #include <eigen3/Eigen/Eigen>
 #include <iostream>
 
