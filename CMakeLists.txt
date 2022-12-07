@@ -72,12 +72,12 @@ endif()
 #   message(STATUS "--    Could not find Eigen anywhere.")
 # endif()
 
-# include("FindOpenMesh.cmake")
-# if(OPENMESH_FOUND)
-#   message(STATUS "--    success. find_package() succeeded with OpenMesh at ${OPENMESH_INCLUDE_DIR}")
-# else()
-#   message(STATUS "--    Could not find OpenMesh anywhere.")
-# endif()
+include("FindOpenMesh.cmake")
+if(OPENMESH_FOUND)
+  message(STATUS "--    success. find_package() succeeded with OpenMesh at ${OPENMESH_INCLUDE_DIR}")
+else()
+  message(STATUS "--    Could not find OpenMesh anywhere.")
+endif()
 
 find_package(OpenMP REQUIRED)
 
