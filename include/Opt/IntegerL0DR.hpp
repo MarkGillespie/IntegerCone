@@ -172,8 +172,10 @@ public:
   IntegerL0DR(int m1_, const ColMajorSparseMatrix A1_, const VectorX b1_,
               OptCandidates &candidates_, volatile bool &is_success_,
               double lm_eps_)
-      : m1(m1_), n(A1_.cols()), n1(b1_.size()), A1(A1_), b1(b1_),
-        candidates(candidates_), is_success(is_success_), lm_eps(lm_eps_) {
+      : is_success(is_success_), m1(m1_), n(A1_.cols()), n1(b1_.size()),
+        A1(A1_), b1(b1_), lm_eps(lm_eps_), candidates(candidates_) {
+    // m1(m1_), n(A1_.cols()), n1(b1_.size()), A1(A1_), b1(b1_),
+    //     is_success(is_success_), candidates(candidates_), lm_eps(lm_eps_) {
     sigma = 1;
     lambda = 0;
     initialize();
