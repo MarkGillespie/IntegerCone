@@ -1,8 +1,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <eigen3/Eigen/Dense>
-#include <eigen3/Eigen/Sparse>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 #ifdef USE_FLOAT_SCALAR
 typedef float Scalar

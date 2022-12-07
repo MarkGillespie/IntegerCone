@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Opt/types.h"
+#include "Opt/Types.h"
 #include "MeshDefinition.h"
 class ConeGene
 {

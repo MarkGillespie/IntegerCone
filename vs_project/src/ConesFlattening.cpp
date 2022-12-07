@@ -1,6 +1,7 @@
 #include "ConesFlattening.h"
 #include "Opt/AlgOpt.h"
 #include <fstream>
+#include <omp.h>
 
 namespace ConesFlattening
 {
