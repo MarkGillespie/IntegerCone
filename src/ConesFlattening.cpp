@@ -77,7 +77,7 @@ void interiorMatP(const Mesh &mesh) {
     trips.emplace_back(rowId, v.idx(), 1);
     rowId++;
 
-    if (rowId == mesh.n_vertices() - 1) {
+    if (rowId + 1 == (int)mesh.n_vertices()) {
       break;
     }
   }
@@ -254,7 +254,7 @@ void geneCone(VectorX &conesK, VectorX &phi, VectorX &MA, int coneMax,
   std::vector<int> cn(para_num, coneMax);
   std::vector<double> factor(para_num);
   std::vector<VectorX> s(para_num);
-  for (size_t i = 0; i < para_num; i++) {
+  for (int i = 0; i < para_num; i++) {
     factor[i] = 1.0 - 0.04 * i;
   }
 
