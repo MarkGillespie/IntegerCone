@@ -15,6 +15,7 @@ protected:
   virtual bool record(const Tensor &, int iter) = 0;
   virtual void updateGamma(int count, double res) = 0;
   virtual bool checksuccess() = 0;
+  virtual ~DRSplitting() = default;
 
   void initAnderson(AA_trait<false>) {}
   void initAnderson(AA_trait<true>) {
