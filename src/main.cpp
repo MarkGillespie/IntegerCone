@@ -13,6 +13,9 @@
 
 #include "args/args.hxx"
 
+std::unique_ptr<ManifoldSurfaceMesh> mesh;
+std::unique_ptr<VertexPositionGeometry> geom;
+
 // Polyscope visualization handle, to quickly add data to the surface
 polyscope::SurfaceMesh *psMesh;
 
@@ -59,35 +62,6 @@ void saveInfo(double factor, double t, double l2norm, int iter, double gamma,
   infoFile << "gamma : \t" << gamma << std::endl;
   infoFile << "cost time : \t" << t << " s\n";
   infoFile.close();
-}
-
-// https://github.com/vijaiaeroastro/openMeshPolyscope
-// This function unpacks openmesh data to a simpler cpp containers suitable for
-// polyscope
-std::pair<std::vector<std::array<double, 3>>,
-          std::vector<std::array<unsigned int, 3>>>
-unpack_open_mesh(Mesh &reference_mesh) {
-  std::vector<std::array<double, 3>> vertexPositions;
-  std::vector<std::array<unsigned int, 3>> meshConnectivity;
-  for (auto v : reference_mesh.vertices()) {
-    auto current_point = reference_mesh.point(v);
-    std::array<double, 3> current_array_point;
-    current_array_point[0] = current_point[0];
-    current_array_point[1] = current_point[1];
-    current_array_point[2] = current_point[2];
-    vertexPositions.push_back(current_array_point);
-  }
-  for (auto f : reference_mesh.faces()) {
-    std::array<unsigned int, 3> current_triangle;
-    unsigned int temp_index = 0;
-    for (auto fv_it = reference_mesh.fv_iter(f); fv_it.is_valid(); ++fv_it) {
-      current_triangle[temp_index] = fv_it->idx();
-      temp_index++;
-    }
-    meshConnectivity.push_back(current_triangle);
-    temp_index = 0;
-  }
-  return std::make_pair(vertexPositions, meshConnectivity);
 }
 
 // A user-defined callback, for creating control panels (etc)
@@ -137,30 +111,20 @@ int main(int argc, const char *argv[]) {
   double gamma;
   bool seamless = true;
 
-  Mesh mesh;
-
-  std::cout << "load mesh from " << objPath << std::endl;
-  if (!MeshTools::ReadMesh(mesh, objPath)) {
-    std::cout << "load failed!\n";
-    exit(EXIT_FAILURE);
-  }
-
   // Initialize polyscope
   polyscope::init();
 
   // Set the callback function
   polyscope::state::userCallback = myCallback;
 
-  // // Load mesh
-  // std::tie(mesh, geom) = readManifoldSurfaceMesh(filename);
-  auto unpackOpenMesh = unpack_open_mesh(mesh);
+  // Load mesh
+  std::cout << "load mesh from " << objPath << std::endl;
+  std::tie(mesh, geom) = readManifoldSurfaceMesh(objPath);
 
   // Register the mesh with polyscope
-  // psMesh = polyscope::registerSurfaceMesh("mesh", geom->vertexPositions,
-  //                                         mesh->getFaceVertexList(),
-  //                                         polyscopePermutations(*mesh));
-  psMesh = polyscope::registerSurfaceMesh("mesh", unpackOpenMesh.first,
-                                          unpackOpenMesh.second);
+  psMesh = polyscope::registerSurfaceMesh("mesh", geom->vertexPositions,
+                                          mesh->getFaceVertexList(),
+                                          polyscopePermutations(*mesh));
   polyscope::show();
 
   VectorX conesK, u, A;
@@ -168,7 +132,7 @@ int main(int argc, const char *argv[]) {
   clock_t start, end;
   start = clock();
 
-  ConesFlattening::initCoef(mesh, 2, sigma);
+  ConesFlattening::initCoef(*mesh, *geom, 2, sigma);
   ConesFlattening::geneCone(conesK, u, A, cN, factor, iter, gamma);
 
   VectorX u_l2 = u;
@@ -186,7 +150,9 @@ int main(int argc, const char *argv[]) {
   saveInfo(factor, costTime, sqrt(A.transpose() * u_l2.cwiseAbs2()), iter,
            gamma, infoPath);
 
-  psMesh->addVertexScalarQuantity("K", conesK);
+  std::vector<std::pair<size_t, double>> cones;
+
+  // psMesh->addVertexScalarQuantity("K", conesK);
   psMesh->addVertexScalarQuantity("u", u);
   polyscope::show();
 

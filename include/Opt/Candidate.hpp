@@ -3,6 +3,8 @@
 #include "Types.h"
 #include <set>
 
+#include "ConfigurableSolver.h"
+
 struct cmpLess {
   inline bool operator()(const VectorX &x, const VectorX &y) const {
     int xAbsSum = x.cwiseAbs().cwiseSign().sum();
@@ -34,7 +36,8 @@ struct OptCandidates {
   VectorX b;
   double sigma;
   int lp;
-  Eigen::SimplicialLDLT<ColMajorSparseMatrix> SAST;
+  // Eigen::SimplicialLDLT<ColMajorSparseMatrix> SAST;
+  ConfigurableSolver<double> SAST;
   VectorX phi_alter, phi_min;
   double B_min = DBL_MAX, E_min = DBL_MAX, BB_min = DBL_MAX;
 
@@ -58,11 +61,14 @@ struct OptCandidates {
       S.setFromTriplets(trips.begin(), trips.end());
     }
 
-    SAST.compute(S * A * S.transpose());
-    if (SAST.info() != Eigen::Success) {
-      printf("OptCandidate LDLT factory failed\n");
-      exit(EXIT_FAILURE);
-    }
+    SAST.setSolverType(SolverType::pardisoLDLT);
+    ColMajorSparseMatrix matrix = S * A * S.transpose();
+    SAST.compute(matrix);
+    // SAST.compute(S * A * S.transpose());
+    // if (SAST.info() != Eigen::Success) {
+    //   printf("OptCandidate LDLT factory failed\n");
+    //   exit(EXIT_FAILURE);
+    // }
 
     clear();
   }

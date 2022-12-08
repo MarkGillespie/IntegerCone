@@ -20,8 +20,7 @@ protected:
 
   void initAnderson(AA_trait<false>) {}
   void initAnderson(AA_trait<true>) {
-    AA =
-        std::make_unique<AndersonAcceleration>(andersM, 2 * S.size(), S.size());
+    AA.reset(new AndersonAcceleration(andersM, 2 * S.size(), S.size()));
     AA->init(S, U);
     res = DBL_MAX;
     res_RC = DBL_MAX;

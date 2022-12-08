@@ -6,6 +6,8 @@
 #include "OMPHelper.h"
 #include <ctime>
 
+#include "ConfigurableSolver.h"
+
 /*
 solve the following problem:
 min ||A1x + b1||_0 + lambda * 0.5 * ||A3x + b3||_2^2, s.t.
@@ -189,11 +191,14 @@ public:
     // lm_gamma = gamma_;
     ColMajorSparseMatrix I(n, n);
     I.setIdentity();
-    A2Alpha.compute(3 / alpha1 * A1T * A1 + I);
-    if (A2Alpha.info() != Eigen::Success) {
-      printf("IL0 LDLT factory failed\n");
-      exit(EXIT_FAILURE);
-    }
+    ColMajorSparseMatrix matrix = 3 / alpha1 * A1T * A1 + I;
+    A2Alpha.setSolverType(SolverType::pardisoLDLT);
+    A2Alpha.compute(matrix);
+    // A2Alpha.compute(3 / alpha1 * A1T * A1 + I);
+    // if (A2Alpha.info() != Eigen::Success) {
+    //   printf("IL0 LDLT factory failed\n");
+    //   exit(EXIT_FAILURE);
+    // }
   }
 
   VectorX initOri(const VectorX &x0) {
@@ -261,7 +266,8 @@ private:
   double lres = DBL_MAX;
   // double coef = 0.1;
 
-  Eigen::SimplicialLDLT<ColMajorSparseMatrix> A2Alpha;
+  // Eigen::SimplicialLDLT<ColMajorSparseMatrix> A2Alpha;
+  ConfigurableSolver<double> A2Alpha;
 
   OptCandidates &candidates;
 };

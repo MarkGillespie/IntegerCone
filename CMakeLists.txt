@@ -72,12 +72,12 @@ endif()
 #   message(STATUS "--    Could not find Eigen anywhere.")
 # endif()
 
-include("FindOpenMesh.cmake")
-if(OPENMESH_FOUND)
-  message(STATUS "--    success. find_package() succeeded with OpenMesh at ${OPENMESH_INCLUDE_DIR}")
-else()
-  message(STATUS "--    Could not find OpenMesh anywhere.")
-endif()
+# include("FindOpenMesh.cmake")
+# if(OPENMESH_FOUND)
+#   message(STATUS "--    success. find_package() succeeded with OpenMesh at ${OPENMESH_INCLUDE_DIR}")
+# else()
+#   message(STATUS "--    Could not find OpenMesh anywhere.")
+# endif()
 
 find_package(OpenMP REQUIRED)
 
@@ -85,12 +85,33 @@ find_package(OpenMP REQUIRED)
 add_subdirectory(packages/geometry-central)
 add_subdirectory(packages/polyscope)
 
-# include("findMKL.cmake")
-# if(MKL_FOUND)
-#   message("MKL_INCLUDE_DIR: ${MKL_INCLUDE_DIR}")
-#   message("MKL_LIBRARIES: ${MKL_LIBRARIES}")
-#   add_definitions(-DEIGEN_USE_MKL_ALL)
-# endif()
-# set(GG_HAVE_MKL ${MKL_FOUND})
+include("findMKL.cmake")
+if(MKL_FOUND)
+  message("MKL_INCLUDE_DIR: ${MKL_INCLUDE_DIR}")
+  message("MKL_LIBRARIES: ${MKL_LIBRARIES}")
+  add_definitions(-DEIGEN_USE_MKL_ALL)
+  set(GC_HAVE_MKL "TRUE")
+else()
+  set(GC_HAVE_MKL "FALSE")
+endif()
+# set(GG_HAVE_MKL ${MKL_FOUND}) # why doesn't this work?
+message("MKL_FOUND: ${MKL_FOUND}")
+message("GC_HAVE_MKL: ${GC_HAVE_MKL}")
+
+# https://community.intel.com/t5/Intel-C-Compiler/dyld-Library-not-loaded-rpath-libimp5-dylib/m-p/1097284
+# Yes, there is a problem on the Mac with @rpath.  Here is a work-around:
+# After successfully building your app, on a command line you must use the install_name_tool to relocate libiomp5.dylib in the executable:
+# install_name_tool -change @rpath/libiomp5.dylib @executable_path/`basename libiomp5.dylib` <full pathname to your executable>
+# where  the full pathname will be something like the following:
+# /Users/YourUserName/Developer/YourApp/YourApp.app/Contents/MacOS/YourExecutableAppName
+# install_name_tool -change @rpath/libiomp5.dylib /opt/intel/oneapi/compiler/latest/mac/compiler/lib/libiomp5.dylib bin/cones
+# ^ didn't seem to work
+
+# this seemed better:
+# install_name_tool -add_rpath /opt/intel/oneapi/compiler/latest/mac/compiler/lib/ bin/cones
+
+# or maybe this one:
+# install_name_tool -add_rpath /opt/intel/oneapi/compiler/latest/mac/compiler/lib/libiomp5.dylib bin/cones
+
 
 add_subdirectory(src)

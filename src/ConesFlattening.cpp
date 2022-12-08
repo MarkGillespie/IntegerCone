@@ -10,164 +10,114 @@ VectorX K;
 int lp = -1;
 double sigma;
 
-void areaMat(const Mesh &mesh) {
-  A.resize(mesh.n_vertices(), mesh.n_vertices());
+SparseMatrix<double> lpMassMatrix(ManifoldSurfaceMesh &mesh,
+                                  IntrinsicGeometryInterface &geom,
+                                  int lp = -1) {
+  SparseMatrix<double> A(mesh.nVertices(), mesh.nVertices());
   if (lp < 0) {
     A.setIdentity();
-    return;
+    return A;
   }
 
-  std::vector<double> fArea(mesh.n_faces());
-  double sumArea = 0;
+  geom.requireVertexDualAreas();
+  geom.requireVertexIndices();
+  const VertexData<size_t> &vIdx = geom.vertexIndices;
+  const VertexData<double> &vArea = geom.vertexDualAreas;
 
-  for (auto f : mesh.faces()) {
-    OpenMesh::Vec3d p[3];
-    auto cfv_it = mesh.cfv_begin(f);
-    p[0] = mesh.point(*cfv_it);
-    ++cfv_it;
-    p[1] = mesh.point(*cfv_it);
-    ++cfv_it;
-    p[2] = mesh.point(*cfv_it);
-
-    fArea[f.idx()] = ((p[0] - p[1]) % (p[1] - p[2])).norm();
-    sumArea += fArea[f.idx()];
-  }
-
+  double surfaceArea = 0;
+  for (Vertex v : mesh.vertices())
+    surfaceArea += vArea[v];
   std::vector<Eigen::Triplet<double>> trips;
-  trips.reserve(mesh.n_vertices());
+  trips.reserve(mesh.nVertices());
 
-  for (auto v : mesh.vertices()) {
-    double vArea = 0;
-    for (auto vf : mesh.vf_range(v)) {
-      vArea += fArea[vf.idx()];
-    }
-
-    vArea /= (3 * sumArea);
-
-    trips.emplace_back(v.idx(), v.idx(), pow(vArea, 1.0 / lp));
+  for (Vertex v : mesh.vertices()) {
+    trips.emplace_back(vIdx[v], vIdx[v], pow(vArea[v] / surfaceArea, 1. / lp));
   }
-
+  geom.unrequireVertexIndices();
+  geom.unrequireVertexDualAreas();
   A.setFromTriplets(trips.begin(), trips.end());
+
+  return A;
 }
 
-void interiorMat(const Mesh &mesh) {
+SparseMatrix<double> interiorMat(ManifoldSurfaceMesh &mesh,
+                                 IntrinsicGeometryInterface &geom) {
   std::vector<Eigen::Triplet<double>> trips;
-  trips.reserve(mesh.n_vertices());
+  trips.reserve(mesh.nVertices());
+
+  geom.requireVertexIndices();
+  const VertexData<size_t> &vIdx = geom.vertexIndices;
 
   int rowId = 0;
-  for (auto v : mesh.vertices()) {
-    if (mesh.is_boundary(v))
+  for (Vertex v : mesh.vertices()) {
+    if (v.isBoundary())
       continue;
-    trips.emplace_back(rowId, v.idx(), 1);
+    trips.emplace_back(rowId, vIdx[v], 1);
     rowId++;
   }
 
-  P.resize(rowId, mesh.n_vertices());
+  geom.unrequireVertexIndices();
+
+  SparseMatrix<double> P(rowId, mesh.nVertices());
   P.setFromTriplets(trips.begin(), trips.end());
+  return P;
 }
 
-void interiorMatP(const Mesh &mesh) {
+SparseMatrix<double> interiorMatP(ManifoldSurfaceMesh &mesh,
+                                  IntrinsicGeometryInterface &geom) {
   std::vector<Eigen::Triplet<double>> trips;
-  trips.reserve(mesh.n_vertices());
+  trips.reserve(mesh.nVertices());
+
+  geom.requireVertexIndices();
+  const VertexData<size_t> &vIdx = geom.vertexIndices;
 
   int rowId = 0;
-  for (auto v : mesh.vertices()) {
-    if (mesh.is_boundary(v))
+  for (Vertex v : mesh.vertices()) {
+    if (v.isBoundary())
       continue;
-    trips.emplace_back(rowId, v.idx(), 1);
+    trips.emplace_back(rowId, vIdx[v], 1);
     rowId++;
 
-    if (rowId + 1 == (int)mesh.n_vertices()) {
+    if (rowId + 1 == (int)mesh.nVertices()) {
       break;
     }
   }
+  geom.unrequireVertexIndices();
 
-  PP.resize(rowId, mesh.n_vertices());
+  SparseMatrix<double> PP(rowId, mesh.nVertices());
   PP.setFromTriplets(trips.begin(), trips.end());
+  return PP;
 }
 
-void initYamabeCoef(const Mesh &mesh) {
-  std::vector<OpenMesh::Vec3i> fv_idx(mesh.n_faces());
-  std::vector<OpenMesh::Vec3d> fv_theta(mesh.n_faces()), fv_cot(mesh.n_faces());
-
-  for (auto f : mesh.faces()) {
-    Mesh::VertexHandle v[3];
-    auto cfv_it = mesh.cfv_begin(f);
-    v[0] = *cfv_it;
-    ++cfv_it;
-    v[1] = *cfv_it;
-    ++cfv_it;
-    v[2] = *cfv_it;
-
-    OpenMesh::Vec3d e[3];
-    e[0] = (mesh.point(v[2]) - mesh.point(v[1])).normalized();
-    e[1] = (mesh.point(v[0]) - mesh.point(v[2])).normalized();
-    e[2] = (mesh.point(v[1]) - mesh.point(v[0])).normalized();
-
-    fv_idx[f.idx()][0] = v[0].idx();
-    fv_idx[f.idx()][1] = v[1].idx();
-    fv_idx[f.idx()][2] = v[2].idx();
-
-    fv_theta[f.idx()][0] = acos(-e[1] | e[2]);
-    fv_theta[f.idx()][1] = acos(-e[2] | e[0]);
-    fv_theta[f.idx()][2] = acos(-e[0] | e[1]);
-
-    fv_cot[f.idx()][0] = -0.5 * (e[1] | e[2]) / (e[1] % e[2]).norm();
-    fv_cot[f.idx()][1] = -0.5 * (e[2] | e[0]) / (e[2] % e[0]).norm();
-    fv_cot[f.idx()][2] = -0.5 * (e[0] | e[1]) / (e[0] % e[1]).norm();
+// Gaussian curvature at interior vertices, geodesic curvature at boundary
+// vertices
+VertexData<double> vertexCurvatures(ManifoldSurfaceMesh &mesh,
+                                    IntrinsicGeometryInterface &geom) {
+  VertexData<double> K(mesh);
+  geom.requireVertexAngleSums();
+  for (Vertex v : mesh.vertices()) {
+    double flatSum = v.isBoundary() ? M_PI : 2 * M_PI;
+    K[v] = flatSum - geom.vertexAngleSums[v];
   }
-
-  K.resize(mesh.n_vertices());
-  for (auto v : mesh.vertices()) {
-    if (mesh.is_boundary(v))
-      K[v.idx()] = M_PI;
-    else
-      K[v.idx()] = 2 * M_PI;
-  }
-
-  for (auto f : mesh.faces()) {
-    K[fv_idx[f.idx()][0]] -= fv_theta[f.idx()][0];
-    K[fv_idx[f.idx()][1]] -= fv_theta[f.idx()][1];
-    K[fv_idx[f.idx()][2]] -= fv_theta[f.idx()][2];
-  }
-
-  std::vector<Eigen::Triplet<double>> trips;
-  trips.reserve(9 * mesh.n_faces());
-
-  for (auto f : mesh.faces()) {
-    trips.emplace_back(fv_idx[f.idx()][0], fv_idx[f.idx()][0],
-                       fv_cot[f.idx()][1] + fv_cot[f.idx()][2]);
-    trips.emplace_back(fv_idx[f.idx()][1], fv_idx[f.idx()][1],
-                       fv_cot[f.idx()][0] + fv_cot[f.idx()][2]);
-    trips.emplace_back(fv_idx[f.idx()][2], fv_idx[f.idx()][2],
-                       fv_cot[f.idx()][0] + fv_cot[f.idx()][1]);
-    trips.emplace_back(fv_idx[f.idx()][0], fv_idx[f.idx()][1],
-                       -fv_cot[f.idx()][2]);
-    trips.emplace_back(fv_idx[f.idx()][1], fv_idx[f.idx()][0],
-                       -fv_cot[f.idx()][2]);
-    trips.emplace_back(fv_idx[f.idx()][1], fv_idx[f.idx()][2],
-                       -fv_cot[f.idx()][0]);
-    trips.emplace_back(fv_idx[f.idx()][2], fv_idx[f.idx()][1],
-                       -fv_cot[f.idx()][0]);
-    trips.emplace_back(fv_idx[f.idx()][2], fv_idx[f.idx()][0],
-                       -fv_cot[f.idx()][1]);
-    trips.emplace_back(fv_idx[f.idx()][0], fv_idx[f.idx()][2],
-                       -fv_cot[f.idx()][1]);
-  }
-
-  L.resize(mesh.n_vertices(), mesh.n_vertices());
-  L.setFromTriplets(trips.begin(), trips.end());
+  geom.unrequireVertexAngleSums();
+  return K;
 }
 
-void initCoef(const Mesh &mesh, int lp_, double sigma_) {
-  printf("Initialization\n");
+void initCoef(ManifoldSurfaceMesh &mesh, IntrinsicGeometryInterface &geom,
+              int lp_, double sigma_) {
+  std::cout << "initializing with geometry-central" << std::endl;
+
   lp = lp_;
   sigma = sigma_;
 
-  areaMat(mesh);
-  interiorMat(mesh);
-  interiorMatP(mesh);
-  initYamabeCoef(mesh);
+  geom.requireCotanLaplacian();
+  L = geom.cotanLaplacian;
+  geom.unrequireCotanLaplacian();
+
+  A = lpMassMatrix(mesh, geom, lp);
+  K = vertexCurvatures(mesh, geom).raw();
+  P = interiorMat(mesh, geom);
+  PP = interiorMatP(mesh, geom);
 }
 
 struct pairCmpLess {
